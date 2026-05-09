@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Smart Motor Guardian</title>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+
+background:#08110c;
+color:#00ff88;
+
+font-family:'Orbitron',sans-serif;
+
+padding:20px;
+}
+
+.container{
+
+max-width:900px;
+margin:auto;
+}
+
+h1{
+
+text-align:center;
+margin-bottom:30px;
+
+font-size:32px;
+}
+
+.status{
+
+text-align:center;
+
+margin-bottom:20px;
+
+font-size:14px;
+}
+
+.grid{
+
+display:grid;
+
+grid-template-columns:
+repeat(2,1fr);
+
+gap:20px;
+}
+
+.card{
+
+border:1px solid #00ff88;
+
+border-radius:10px;
+
+padding:25px;
+
+text-align:center;
+}
+
+.label{
+
+font-size:14px;
+
+opacity:.7;
+
+margin-bottom:10px;
+}
+
+.value{
+
+font-size:34px;
+
+font-weight:900;
+}
+
+.alert{
+
+color:#ff3355;
+}
+
+.warn{
+
+color:#ffdd00;
+}
+
+/* radar */
+
+.radarCard{
+
+grid-column:span 2;
+}
+
+#radar{
+
+background:#020804;
+
+border:1px solid #00ff88;
+
+display:block;
+
+margin:auto;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>SMART MOTOR GUARDIAN</h1>
+
+<div
+class="status"
+id="status">
+
+CONNECTING...
+</div>
+
+<div class="grid">
+
+<div class="card">
+<div class="label">TEMPERATURE</div>
+<div class="value"
+id="temp">
+--
+</div>
+</div>
+
+<div class="card">
+<div class="label">CURRENT</div>
+<div class="value"
+id="amp">
+--
+</div>
+</div>
+
+<div class="card">
+<div class="label">RPM</div>
+<div class="value"
+id="rpm">
+--
+</div>
+</div>
+
+<div class="card">
+<div class="label">VIBRATION</div>
+<div class="value"
+id="vib">
+--
+</div>
+</div>
+
+<div class="card radarCard">
+
+<canvas
+id="radar"
+width="500"
+height="300">
+</canvas>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+// ======================================
+// MQTT
+// ======================================
+
+const client = mqtt.connect(
+"wss://0d6666edf86b49058c829f4e72fa5d76.s1.eu.hivemq.cloud:8884/mqtt",
+{
+
+username:"esp32",
+
+password:"Esp32Cloude11"
+
+}
+);
+
+
+// ======================================
+// UI
+// ======================================
+
+const statusEl =
+document.getElementById(
+'status'
+);
+
+const tempEl =
+document.getElementById(
+'temp'
+);
+
+const ampEl =
+document.getElementById(
+'amp'
+);
+
+const rpmEl =
+document.getElementById(
+'rpm'
+);
+
+const vibEl =
+document.getElementById(
+'vib'
+);
+
+
+// ======================================
+// CANVAS
+// ======================================
+
+const canvas =
+document.getElementById(
+'radar'
+);
+
+const ctx =
+canvas.getContext(
+'2d'
+);
+
+let pointX = 250;
+
+let pointY = 150;
+
+
+// ======================================
+// DRAW
+// ======================================
+
+function drawRadar(){
+
+ctx.clearRect(
+0,
+0,
+500,
+300
+);
+
+
+// grid
+
+ctx.strokeStyle =
+'rgba(0,255,136,.15)';
+
+
+for(let x=0;x<=500;x+=50){
+
+ctx.beginPath();
+
+ctx.moveTo(
+x,
+0
+);
+
+ctx.lineTo(
+x,
+300
+);
+
+ctx.stroke();
+}
+
+
+for(let y=0;y<=300;y+=50){
+
+ctx.beginPath();
+
+ctx.moveTo(
+0,
+y
+);
+
+ctx.lineTo(
+500,
+y
+);
+
+ctx.stroke();
+}
+
+
+// point
+
+ctx.fillStyle =
+'#ff3355';
+
+ctx.beginPath();
+
+ctx.arc(
+pointX,
+pointY,
+6,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+
+drawRadar();
+
+
+// ======================================
+// MQTT
+// ======================================
+
+client.on(
+'connect',
+()=>{
+
+statusEl.textContent =
+'MQTT ONLINE';
+
+
+client.subscribe(
+'tony/factory/#'
+);
+
+}
+);
+
+
+client.on(
+'message',
+(topic,message)=>{
+
+const value =
+message.toString();
+
+
+// temp
+
+if(
+topic.includes(
+'temp'
+)
+){
+
+tempEl.textContent =
+value+' C';
+}
+
+
+// amp
+
+if(
+topic.includes(
+'amp'
+)
+){
+
+ampEl.textContent =
+value+' A';
+}
+
+
+// rpm
+
+if(
+topic.includes(
+'rpm'
+)
+){
+
+rpmEl.textContent =
+value;
+
+
+// x axis
+
+pointX =
+Math.min(
+500,
+parseInt(value)/10
+);
+
+drawRadar();
+
+}
+
+
+// vib
+
+if(
+topic.includes(
+'vib'
+)
+){
+
+if(
+value=="1"
+){
+
+vibEl.textContent =
+'ALERT';
+
+vibEl.className =
+'value alert';
+
+
+// y axis
+
+pointY = 50;
+
+}else{
+
+vibEl.textContent =
+'OK';
+
+vibEl.className =
+'value';
+
+pointY = 250;
+
+}
+
+drawRadar();
+
+}
+
+}
+);
+
+</script>
+
+</body>
+</html>
