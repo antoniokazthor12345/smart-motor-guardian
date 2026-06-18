@@ -9,20 +9,20 @@
 // ======================================
 // WIFI
 // ======================================
-const char* ssid = "Totalplay-D2B1";
-const char* password = "D2B12DD8U6HS8Pz4";
+const char* ssid = "********";
+const char* password = "********";
 
 // ======================================
 // MQTT CLOUD
 // ======================================
 const char* mqtt_server =
-"0d6666edf86b49058c829f4e72fa5d76.s1.eu.hivemq.cloud";
+"********.s1.eu.hivemq.cloud";
 
 const int mqtt_port = 8883;
 
-const char* mqtt_user = "esp32";
+const char* mqtt_user = "********";
 
-const char* mqtt_pass = "Esp32Cloude11";
+const char* mqtt_pass = "********";
 
 // ======================================
 // CLIENTS
